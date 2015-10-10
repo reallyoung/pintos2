@@ -466,7 +466,7 @@ void set_argv(char* str_, char* argv[], int argc)
         //printf("argv[%d] = '%s'\n",i, argv[i]);
         i++;
      }
-     argv[argc] = NULL;
+     argv[argc] = 0;
 
 }
 #define WORD_SIZE 4
@@ -488,15 +488,52 @@ setup_stack (void **esp, char* cmd_line)
         int argc;
         char** argv;
         int i;
+        int size;
+        int temp;
+        unsigned int* argv_p;
+        unsigned int utemp;
         *esp = PHYS_BASE;
         argc= find_argc(cmd_line, ' ');
         argv =(char**)malloc((argc+1) * sizeof(char*));
+        argv_p=(unsigned int*)malloc((argc+1) * sizeof(unsigned int));
         set_argv(cmd_line, argv, argc);
-
-
-        printf("\ncmd_line = '%s'\nargc = '%d'\n\n", cmd_line, argc);
-        for(i = 0;i<=argc;i++)
-          printf("argv[%d] = '%s'\n",i, argv[i]);
+        
+        for (i=1; i <= argc ; i++)
+        {
+            size = strlen(argv[argc-i]) + 1;
+            *esp -= size;
+            memcpy(*esp, argv[argc-i], size);
+            argv_p[argc-i] = (unsigned int)*esp;
+        }
+        argv_p[argc] = 0;
+        //align
+        temp = (unsigned int)*esp % WORD_SIZE;
+        if(temp != 0)
+        {
+            *esp -= temp;
+            memcpy(*esp, &argv[argc],temp);
+        }
+        //put argv[]
+        for(i=0;i<=argc;i++)
+        {
+            *esp -= WORD_SIZE;
+            memcpy(*esp,&argv_p[argc-i],WORD_SIZE);
+        }
+        //put argv
+        utemp = *esp;
+        *esp -= WORD_SIZE;
+        memcpy(*esp, &utemp, WORD_SIZE);
+        //argc
+        *esp -=WORD_SIZE;
+        memcpy(*esp, &argc, WORD_SIZE);
+        //ret
+        *esp -=WORD_SIZE;
+        memcpy(*esp, &argv[argc],WORD_SIZE);
+        
+        hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+        //printf("\ncmd_line = '%s'\nargc = '%d'\n\n", cmd_line, argc);
+        //for(i = 0;i<=argc;i++)
+        //  printf("argv[%d] = '%s'\n",i, argv[i]);
 
       }
       else
