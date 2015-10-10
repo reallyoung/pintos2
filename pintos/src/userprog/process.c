@@ -431,7 +431,45 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
     }
   return true;
 }
+int find_argc(char* str_, char tok)
+{
+    int cnt =1;
+    int pre  = 0;
+    char* str = str_;
+    while(*str != '\0')
+    {
+        if(*str != tok )
+            pre =0;
+        else
+        {
+            if(pre == 0)
+                cnt++;
+            pre = 1;
+        }
+        str++;
+    }
+    return cnt; 
+}
+void set_argv(char* str_, char* argv[], int argc)
+{
 
+    //argv =(char**)malloc((argc+1) * sizeof(char*));
+    char* s = (char*)malloc(strlen(str_)+1);
+    memcpy(s, str_, strlen(str_)+1);
+    char *token, *save_ptr;
+    int i = 0;
+     for (token = strtok_r (s, " ", &save_ptr); token != NULL;
+       token = strtok_r (NULL, " ", &save_ptr))
+     {
+        argv[i]= (char*)malloc(strlen(token) + 1);
+        memcpy(argv[i], token, strlen(token) + 1);
+        //printf("argv[%d] = '%s'\n",i, argv[i]);
+        i++;
+     }
+     argv[argc] = NULL;
+
+}
+#define WORD_SIZE 4
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
@@ -440,13 +478,27 @@ setup_stack (void **esp, char* cmd_line)
   uint8_t *kpage;
   bool success = false;
 
-  printf("\ncmd_line = '%s'\n\n", cmd_line);
+  //printf("\ncmd_line = '%s'\n\n", cmd_line);
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
+      {
+        int argc;
+        char** argv;
+        int i;
         *esp = PHYS_BASE;
+        argc= find_argc(cmd_line, ' ');
+        argv =(char**)malloc((argc+1) * sizeof(char*));
+        set_argv(cmd_line, argv, argc);
+
+
+        printf("\ncmd_line = '%s'\nargc = '%d'\n\n", cmd_line, argc);
+        for(i = 0;i<=argc;i++)
+          printf("argv[%d] = '%s'\n",i, argv[i]);
+
+      }
       else
         palloc_free_page (kpage);
     }
