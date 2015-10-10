@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -203,6 +204,11 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
+  thread_current()->dont_die = (struct semaphore*)malloc(sizeof (struct semaphore));  
+  sema_init(thread_current() -> dont_die, 0);
+  t->parent = thread_current();
+  list_push_back(&thread_current()->ch_list, &t->ch_elem);
+
 
   intr_set_level (old_level);
 
@@ -469,6 +475,12 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  
+  //t->dont_die = (struct semaphore*)malloc(sizeof (struct semaphore));
+  t -> parent = NULL;
+  list_init(&t->ch_list);
+  //sema_init(t -> dont_die, 0);
+
   list_push_back (&all_list, &t->allelem);
 }
 
