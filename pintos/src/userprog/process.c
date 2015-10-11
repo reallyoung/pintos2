@@ -66,7 +66,7 @@ start_process (void *file_name_)
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-  sema_up(thread_current()->parent->dont_die);
+//  sema_up(&thread_current()->parent->wait_lock);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -89,10 +89,10 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  sema_down(thread_current()->dont_die);
-  return -1;
+  //sema_down(thread_current()->dont_die);
+  return wait(child_tid);
+  //return -1;
 }
-
 /* Free the current process's resources. */
 void
 process_exit (void)
@@ -319,6 +319,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   success = true;
 
  done:
+  free(cmd_line);
   /* We arrive here whether the load is successful or not. */
   file_close (file);
   return success;
@@ -467,7 +468,7 @@ void set_argv(char* str_, char* argv[], int argc)
         i++;
      }
      argv[argc] = 0;
-
+    free(s);
 }
 #define WORD_SIZE 4
 /* Create a minimal stack by mapping a zeroed page at the top of
@@ -534,7 +535,11 @@ setup_stack (void **esp, char* cmd_line)
         //printf("\ncmd_line = '%s'\nargc = '%d'\n\n", cmd_line, argc);
         //for(i = 0;i<=argc;i++)
         //  printf("argv[%d] = '%s'\n",i, argv[i]);
-
+        
+        free(argv_p);
+        for(i=0;i<=argc;i++)
+            free(argv[i]);
+        free(argv);
       }
       else
         palloc_free_page (kpage);

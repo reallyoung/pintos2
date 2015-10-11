@@ -85,6 +85,42 @@ static tid_t allocate_tid (void);
 
    It is not safe to call thread_current() until this function
    finishes. */
+void init_ch_elem(struct child_elem* ch, struct thread* th)
+{
+     ch->status=-99;
+     ch->exit =false;
+     ch->waiting=false;
+     ch->th = th;
+     ch->tid = th->tid;
+}
+struct child_elem* get_ch_elem(struct list *l, tid_t tid)
+{
+    struct list_elem *e;
+    struct child_elem* ch;
+    for(e = list_begin (l); e != list_end (l); e = list_next(e))
+    {
+        ch = list_entry(e, struct child_elem, elem);
+        if (ch ->tid == tid)
+            return ch;
+    }
+    //not found
+    return NULL;
+}
+
+bool thread_exist(tid_t tid)
+{
+struct list_elem *e;
+for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e))
+{
+    struct thread *t = list_entry (e, struct thread, allelem);
+     if (t->tid == tid) 
+         return true;
+}
+return false;//not found
+
+}
+
+
 void
 thread_init (void) 
 {
@@ -204,11 +240,13 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
-  thread_current()->dont_die = (struct semaphore*)malloc(sizeof (struct semaphore));  
-  sema_init(thread_current() -> dont_die, 0);
+  //thread_current()->wait_lock = (struct semaphore*)malloc(sizeof (struct semaphore));  
+  //sema_init(&thread_current() -> wait_lock, 0);
   t->parent = thread_current();
-  list_push_back(&thread_current()->ch_list, &t->ch_elem);
-
+  struct child_elem *ch;
+  ch = (struct child_elem*)malloc(sizeof(struct child_elem));
+  init_ch_elem(ch, t);
+  list_push_back(&thread_current()->ch_list, &ch->elem);
 
   intr_set_level (old_level);
 
@@ -477,6 +515,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   
   //t->dont_die = (struct semaphore*)malloc(sizeof (struct semaphore));
+  t -> waiting = false;
+  t-> exit = false;
+  //sema_init(&thread_current() -> wait_lock, 0);
   t -> parent = NULL;
   list_init(&t->ch_list);
   //sema_init(t -> dont_die, 0);
