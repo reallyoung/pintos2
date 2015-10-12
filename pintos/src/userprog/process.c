@@ -31,6 +31,7 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
+  char* save_ptr;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -39,6 +40,7 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+  file_name = strtok_r(file_name," ",&save_ptr);
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -531,7 +533,7 @@ setup_stack (void **esp, char* cmd_line)
         *esp -=WORD_SIZE;
         memcpy(*esp, &argv[argc],WORD_SIZE);
         
-        hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+        //hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
         //printf("\ncmd_line = '%s'\nargc = '%d'\n\n", cmd_line, argc);
         //for(i = 0;i<=argc;i++)
         //  printf("argv[%d] = '%s'\n",i, argv[i]);

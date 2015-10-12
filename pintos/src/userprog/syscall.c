@@ -44,7 +44,7 @@ syscall_handler (struct intr_frame *f UNUSED)
           }
       case SYS_EXIT:
           {
-              printf("exit call!\n");
+    //          printf("exit call!\n");
               set_arg(f,arg,1);
               exit(arg[0]);
               break;
@@ -90,7 +90,7 @@ syscall_handler (struct intr_frame *f UNUSED)
           }
       case SYS_WRITE:
           {
-              printf("write call!\n");
+    //          printf("write call!\n");
               set_arg(f,arg,3);
               write(arg[0],arg[1],arg[2]);
               break;
@@ -112,8 +112,8 @@ syscall_handler (struct intr_frame *f UNUSED)
           }
 
   }
-  printf ("system call!\n");
-  thread_exit ();
+  //printf ("system call!\n");
+  //thread_exit ();
 }
 void halt()
 {
@@ -191,7 +191,8 @@ int read(int fd, void *buffer, unsigned size)
 }
 int write(int fd, const void *buffer, unsigned size)
 {
-    return 0;
+    putbuf(buffer,size);
+    return size;
 }
 void seek(int fd, unsigned position)
 {
