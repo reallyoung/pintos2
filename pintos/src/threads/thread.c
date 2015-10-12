@@ -110,12 +110,17 @@ struct child_elem* get_ch_elem(struct list *l, tid_t tid)
 bool thread_exist(tid_t tid)
 {
 struct list_elem *e;
+enum intr_level old_level = intr_disable ();
 for (e = list_begin (&all_list); e != list_end (&all_list);e = list_next (e))
 {
     struct thread *t = list_entry (e, struct thread, allelem);
      if (t->tid == tid) 
+     {
+         intr_set_level (old_level);
          return true;
+     }
 }
+intr_set_level (old_level);
 return false;//not found
 
 }
