@@ -11,17 +11,38 @@
 #include "filesys/filesys.h"
 #include <debug.h>
 #include <user/syscall.h>
-
+#include "threads/vaddr.h"
 static void syscall_handler (struct intr_frame *);
+/*
+static bool check_illegal((const void*)ptr)
+{
+    if(!is_user_vaddr((const void *)ptr) || (const void*)ptr < 0x08048000)
+        return false;
+    else
+        return true;
+}
+*/
 void set_arg(struct intr_frame * f, int *arg, int n)
 {
     int i;
     for (i =0; i<n;i++)
     {
+        if(!is_user_vaddr((const void*)(f->esp + i + 1))||
+                (const void*)(f->esp + i + 1) < 0x08048000)
+            exit(-1);
+
         arg[i] = *((int*)f->esp + i + 1);
     }
 }
-
+/*
+bool check_illegal((const void*) ptr)
+{
+     if(!is_user_vaddr((const void *)ptr)||(const void*)ptr < 0x08048000)
+         return false;
+     else
+         return true;
+}
+*/
 void
 syscall_init (void) 
 {
@@ -33,7 +54,11 @@ syscall_handler (struct intr_frame *f UNUSED)
 {
   int arg[3];
   //set_arg(struct intr_frame * f, int *arg, int n);
-  
+ 
+  if(!is_user_vaddr((const void*)f->esp)||
+          (const void*)f->esp < 0x08048000)
+     exit(-1);
+
   switch (*(int *)f->esp)
   {
       case SYS_HALT:
@@ -66,26 +91,31 @@ syscall_handler (struct intr_frame *f UNUSED)
       case SYS_CREATE:
           {
              // printf("crete call!\n");
+              set_arg(f,arg,2);
               break;
           }
       case SYS_REMOVE:
           {
              // printf("remove call!\n");
+             set_arg(f,arg,1);
               break;
           }
       case SYS_OPEN:
           {
              // printf("open call!\n");
+             set_arg(f,arg,1);
               break;
           }
       case SYS_FILESIZE:
           {
              // printf("filesize call!\n");
+              set_arg(f,arg,1);
               break;
           }
       case SYS_READ:
           {
              // printf("read call!\n");
+              set_arg(f,arg,3);
               break;
           }
       case SYS_WRITE:
@@ -97,17 +127,20 @@ syscall_handler (struct intr_frame *f UNUSED)
           }
       case SYS_SEEK:
           {
-              printf("seek call!\n");
+            //  printf("seek call!\n");
+              set_arg(f,arg,2);
               break;
           }
       case SYS_TELL:
           {
-              printf("tell call!\n");
+              //printf("tell call!\n");
+              set_arg(f,arg,1);
               break;
           }
       case SYS_CLOSE:
           {
-              printf("close call!\n");
+              //printf("close call!\n");
+              set_arg(f,arg,1);
               break;
           }
 

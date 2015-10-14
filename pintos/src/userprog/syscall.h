@@ -3,7 +3,9 @@
 //typedef int pid_t;
 
 void syscall_init (void);
-/*void halt (void) NO_RETURN;
+//bool check_illegal((const void*) ptr);
+/*
+void halt (void) NO_RETURN;
 void exit (int status) NO_RETURN;
 pid_t exec (const char *file);
 int wait (pid_t);
