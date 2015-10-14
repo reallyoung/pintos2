@@ -38,7 +38,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   {
       case SYS_HALT:
           {
-              printf("helt call!\n");
+            //  printf("helt call!\n");
               halt();
               break;
           }
@@ -51,41 +51,41 @@ syscall_handler (struct intr_frame *f UNUSED)
           }
       case SYS_EXEC:
           {
-              printf("exec call!\n");
+             // printf("exec call!\n");
               set_arg(f,arg,1);
               exec(arg[0]);
               break;
           }
       case SYS_WAIT:
           {
-              printf("wait call!\n");
+             // printf("wait call!\n");
               set_arg(f,arg,1);
               wait(arg[1]);
               break;
           }
       case SYS_CREATE:
           {
-              printf("crete call!\n");
+             // printf("crete call!\n");
               break;
           }
       case SYS_REMOVE:
           {
-              printf("remove call!\n");
+             // printf("remove call!\n");
               break;
           }
       case SYS_OPEN:
           {
-              printf("open call!\n");
+             // printf("open call!\n");
               break;
           }
       case SYS_FILESIZE:
           {
-              printf("filesize call!\n");
+             // printf("filesize call!\n");
               break;
           }
       case SYS_READ:
           {
-              printf("read call!\n");
+             // printf("read call!\n");
               break;
           }
       case SYS_WRITE:
@@ -135,7 +135,8 @@ void exit(int status)
 }
 pid_t exec(const char* file)
 {
-    return 0;
+    pid_t p = process_execute(file);
+    return p;
 }
 int wait(pid_t pid)
 {
