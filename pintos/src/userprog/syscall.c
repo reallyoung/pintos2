@@ -15,7 +15,7 @@
 #include "threads/synch.h"
 
 static void syscall_handler (struct intr_frame *);
-int add_trans(const void* add);
+unsigned add_trans(const void* add);
 struct lock file_lock;
 /*
 static bool check_illegal((const void*)ptr)
@@ -26,18 +26,18 @@ static bool check_illegal((const void*)ptr)
         return true;
 }
 */
-void set_arg(struct intr_frame * f, int *arg, int n)
+void set_arg(struct intr_frame * f, unsigned *arg, int n)
 {
-    int i;
-    int* ptr;
+    unsigned i;
+    unsigned* ptr;
     for (i =0; i<n;i++)
     {
-        ptr = (int*)f->esp + i +1;
+        ptr = (unsigned*)f->esp + i +1;
         if(!is_user_vaddr((const void*)ptr)||
                 (const void*)ptr < 0x08048000)
             exit(-1);
 
-        arg[i] = *((int*)f->esp + i + 1);
+        arg[i] = *((unsigned*)f->esp + i + 1);
     }
 }
 /*
@@ -59,14 +59,14 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  int arg[3];
+  unsigned arg[3];
   //set_arg(struct intr_frame * f, int *arg, int n);
  
   if(!is_user_vaddr((const void*)f->esp)||
           (const void*)f->esp < 0x08048000)
      exit(-1);
 
-  switch (*(int *)f->esp)
+  switch (*(unsigned *)f->esp)
   {
       case SYS_HALT:
           {
@@ -102,18 +102,22 @@ syscall_handler (struct intr_frame *f UNUSED)
           {
              // printf("crete call!\n");
               set_arg(f,arg,2);
+              arg[0] = add_trans((const void*) arg[0]);
+
               break;
           }
       case SYS_REMOVE:
           {
              // printf("remove call!\n");
              set_arg(f,arg,1);
+             arg[0] = add_trans((const void*) arg[0]);
               break;
           }
       case SYS_OPEN:
           {
              // printf("open call!\n");
              set_arg(f,arg,1);
+             arg[0] = add_trans((const void*) arg[0]);
               break;
           }
       case SYS_FILESIZE:
@@ -126,12 +130,14 @@ syscall_handler (struct intr_frame *f UNUSED)
           {
              // printf("read call!\n");
               set_arg(f,arg,3);
+              arg[1] = add_trans((const void*) arg[1]);
               break;
           }
       case SYS_WRITE:
           {
     //          printf("write call!\n");
               set_arg(f,arg,3);
+              arg[1] = add_trans((const void*) arg[1]);
               write(arg[0],arg[1],arg[2]);
               break;
           }
@@ -269,7 +275,7 @@ void close(int fd)
     return 0;
 }
 
-int add_trans(const void* add)
+unsigned add_trans(const void* add)
 {
     if(!is_user_vaddr((const void*)add)||
             (const void*)add < 0x08048000)
@@ -280,6 +286,6 @@ int add_trans(const void* add)
     if(ptr == NULL)
         exit(-1);
 
-    return (int)ptr;
+    return (unsigned)ptr;
 
 }
