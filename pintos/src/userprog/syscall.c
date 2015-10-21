@@ -278,11 +278,11 @@ int open(const char* file)
         fe->fd = th->fd;
         th->fd += 1;
         list_push_back(&th->file_list,&fe->elem); 
-        /*
+     /*   
         lock_acquire(&file_lock);
         file_deny_write(fp);
         lock_release(&file_lock);
-        */
+       */ 
         return fe -> fd;
     }
 }
@@ -365,6 +365,7 @@ void close(int fd)
         return;
     lock_acquire(&file_lock);
     file_close(fp);
+   // file_allow_write(fp);
     lock_release(&file_lock);
     //remove entry
     struct list l= thread_current()->file_list;

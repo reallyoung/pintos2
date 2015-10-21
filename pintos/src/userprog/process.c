@@ -67,8 +67,11 @@ start_process (void *file_name_)
   //th->my_child_elem->load = true;
   if(!success)
     th->my_child_elem->load_fail = true;
-  th->my_child_elem->load = true;
-
+  else
+  {
+    file_deny_write(th->my_file);
+    th->my_child_elem->load = true;
+  }
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
@@ -106,6 +109,12 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+
+  if(cur->my_file != NULL)
+    file_allow_write(cur->my_file);
+
+  //have to implement close all files
+
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -238,6 +247,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Open executable file. */
   file = filesys_open (file_name);
+
+  //file_deny_write(file);
+  
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -322,13 +334,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
-
+  thread_current()->my_file = file;
   success = true;
 
  done:
   free(cmd_line);
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  if(!success)
+      file_close (file);
   return success;
 }
 
