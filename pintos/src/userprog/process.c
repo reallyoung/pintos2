@@ -64,10 +64,10 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp);
   struct thread* th = thread_current();
-  th->my_child_elem->load = true;
+  //th->my_child_elem->load = true;
   if(!success)
     th->my_child_elem->load_fail = true;
-
+  th->my_child_elem->load = true;
 
   /* If load failed, quit. */
   palloc_free_page (file_name);

@@ -95,7 +95,7 @@ syscall_handler (struct intr_frame *f UNUSED)
           {
              // printf("wait call!\n");
               set_arg(f,arg,1);
-              f -> eax = wait(arg[1]);
+              f -> eax = wait(arg[0]);
               break;
           }
       case SYS_CREATE:
@@ -169,7 +169,7 @@ void exit(int status)
     struct thread* parent = cur -> parent;
     if(parent != NULL)
     {
-      struct child_elem * ch = get_ch_elem(&parent->ch_list, cur->tid);
+      struct child_elem * ch = cur->my_child_elem;
       ch -> status = status;
       ch -> exit = true;
     }
@@ -187,22 +187,30 @@ pid_t exec(const char* file)
     if(ch->load_fail)
         return -1;
     else
+    {
+       // printf("exec return %d\n",p);
         return p;
+    }
 }
 int wait(pid_t pid)
 {
-
+    int s;
     struct child_elem* ch = get_ch_elem(&thread_current()->ch_list, pid);
-    if(pid != -1 && ch == NULL)//wrong pid
+    
+    if( ch == NULL)//wrong pid
         return -1;
 
-    if(ch->exit)//already finish
-        return ch->status;
-
-    if(ch->waiting)//already waiting
+    else if(ch->exit)//already finish
+    {
+        s = ch->status;
+        list_remove(&ch->elem);
+        free(ch);
+        return s;
+    }
+    else if(ch->waiting)//already waiting
         return -1;
     
-    if(!thread_exist(pid))//die by kernel
+    else if(!thread_exist(pid))//die by kernel
         return -1;
     
     //enum intr_level old_level = intr_disable ();
@@ -215,10 +223,12 @@ int wait(pid_t pid)
     }
     ch -> waiting = false;
     //have to remove child_elem
-
+    s = ch->status;
+    list_remove(&ch->elem);
+    free(ch);
 
     //intr_set_level (old_level);
-    return ch->status;  
+    return s;  
 }
 bool create(const char* file, unsigned initial_size)
 {
