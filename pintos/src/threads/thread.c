@@ -90,6 +90,8 @@ void init_ch_elem(struct child_elem* ch, struct thread* th)
      ch->status=-99;
      ch->exit =false;
      ch->waiting=false;
+     ch->load = false;
+     ch->load_fail =false;
      ch->th = th;
      ch->tid = th->tid;
 }
@@ -252,7 +254,7 @@ thread_create (const char *name, int priority,
   ch = (struct child_elem*)malloc(sizeof(struct child_elem));
   init_ch_elem(ch, t);
   list_push_back(&thread_current()->ch_list, &ch->elem);
-
+  t->my_child_elem = ch;
   intr_set_level (old_level);
 
   /* Add to run queue. */

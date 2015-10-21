@@ -86,6 +86,8 @@ struct child_elem
     int status;
     bool exit;
     bool waiting;
+    bool load;
+    bool load_fail;
     tid_t tid;
     struct thread* th;
 };
@@ -107,6 +109,7 @@ struct thread
     struct semaphore wait_lock;
     struct thread* parent;
     struct list ch_list;
+    struct child_elem* my_child_elem;
     //struct list_elem ch_elem;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

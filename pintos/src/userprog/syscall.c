@@ -12,7 +12,11 @@
 #include <debug.h>
 #include <user/syscall.h>
 #include "threads/vaddr.h"
+#include "threads/synch.h"
+
 static void syscall_handler (struct intr_frame *);
+int add_trans(const void* add);
+struct lock file_lock;
 /*
 static bool check_illegal((const void*)ptr)
 {
@@ -25,10 +29,12 @@ static bool check_illegal((const void*)ptr)
 void set_arg(struct intr_frame * f, int *arg, int n)
 {
     int i;
+    int* ptr;
     for (i =0; i<n;i++)
     {
-        if(!is_user_vaddr((const void*)(f->esp + i + 1))||
-                (const void*)(f->esp + i + 1) < 0x08048000)
+        ptr = (int*)f->esp + i +1;
+        if(!is_user_vaddr((const void*)ptr)||
+                (const void*)ptr < 0x08048000)
             exit(-1);
 
         arg[i] = *((int*)f->esp + i + 1);
@@ -47,6 +53,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&file_lock);
 }
 
 static void
@@ -78,14 +85,17 @@ syscall_handler (struct intr_frame *f UNUSED)
           {
              // printf("exec call!\n");
               set_arg(f,arg,1);
-              exec(arg[0]);
+              //arg[0] is kernel pointer 
+              //it has to be convert
+              arg[0] = add_trans((const void*) arg[0]);
+              f->eax = exec((const char*)arg[0]);
               break;
           }
       case SYS_WAIT:
           {
              // printf("wait call!\n");
               set_arg(f,arg,1);
-              wait(arg[1]);
+              f -> eax = wait(arg[1]);
               break;
           }
       case SYS_CREATE:
@@ -169,7 +179,15 @@ void exit(int status)
 pid_t exec(const char* file)
 {
     pid_t p = process_execute(file);
-    return p;
+    struct thread* th = thread_current();
+    struct child_elem* ch = get_ch_elem(&th->ch_list, p);
+    if(ch->load == false)
+        thread_yield();
+
+    if(ch->load_fail)
+        return -1;
+    else
+        return p;
 }
 int wait(pid_t pid)
 {
@@ -193,7 +211,7 @@ int wait(pid_t pid)
 
     while( !ch->exit && thread_exist(pid) )
     {
-            barrier();
+        thread_yield();
     }
     ch -> waiting = false;
     //have to remove child_elem
@@ -239,4 +257,19 @@ unsigned tell(int fd)
 void close(int fd)
 {
     return 0;
+}
+
+int add_trans(const void* add)
+{
+    if(!is_user_vaddr((const void*)add)||
+            (const void*)add < 0x08048000)
+        exit(-1);
+
+    void* ptr = pagedir_get_page(thread_current()->pagedir,add);
+
+    if(ptr == NULL)
+        exit(-1);
+
+    return (int)ptr;
+
 }
