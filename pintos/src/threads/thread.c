@@ -126,7 +126,28 @@ intr_set_level (old_level);
 return false;//not found
 
 }
+struct file* get_file(struct thread* t, int fd)
+{
+    struct list l= t->file_list;
+    struct list_elem *e;
+    if(list_empty(&l))
+        return NULL;
+   
+   // if(list_size(&l)==0)
+     //   return NULL;
 
+    for (e= list_begin(&l); e != list_end(&l); e = list_next(e))
+    {
+        if(!(e != NULL && e->prev == NULL && e->next != NULL) &&
+                !(e != NULL && e->prev != NULL && e->next != NULL))
+            return NULL;
+
+        struct file_elem* f = list_entry(e, struct file_elem, elem);
+        if(f->fd == fd)
+            return f->fp;
+    }
+    return NULL;
+}
 
 void
 thread_init (void) 
@@ -528,7 +549,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t -> parent = NULL;
   list_init(&t->ch_list);
   //sema_init(t -> dont_die, 0);
-
+  list_init(&t->file_list);
+  t->fd = 2;
   list_push_back (&all_list, &t->allelem);
 }
 

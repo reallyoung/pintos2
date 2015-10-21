@@ -103,7 +103,7 @@ syscall_handler (struct intr_frame *f UNUSED)
              // printf("crete call!\n");
               set_arg(f,arg,2);
               arg[0] = add_trans((const void*) arg[0]);
-
+              f->eax = create((const char*)arg[0], arg[1]);
               break;
           }
       case SYS_REMOVE:
@@ -111,6 +111,7 @@ syscall_handler (struct intr_frame *f UNUSED)
              // printf("remove call!\n");
              set_arg(f,arg,1);
              arg[0] = add_trans((const void*) arg[0]);
+             f->eax = remove((const char*)arg[0]);
               break;
           }
       case SYS_OPEN:
@@ -118,12 +119,14 @@ syscall_handler (struct intr_frame *f UNUSED)
              // printf("open call!\n");
              set_arg(f,arg,1);
              arg[0] = add_trans((const void*) arg[0]);
+             f->eax = open((const char*)arg[0]);
               break;
           }
       case SYS_FILESIZE:
           {
              // printf("filesize call!\n");
               set_arg(f,arg,1);
+              f->eax = filesize(arg[0]);
               break;
           }
       case SYS_READ:
@@ -131,6 +134,7 @@ syscall_handler (struct intr_frame *f UNUSED)
              // printf("read call!\n");
               set_arg(f,arg,3);
               arg[1] = add_trans((const void*) arg[1]);
+              f->eax = read(arg[0],(const void*)arg[1],arg[2]);
               break;
           }
       case SYS_WRITE:
@@ -138,25 +142,28 @@ syscall_handler (struct intr_frame *f UNUSED)
     //          printf("write call!\n");
               set_arg(f,arg,3);
               arg[1] = add_trans((const void*) arg[1]);
-              write(arg[0],arg[1],arg[2]);
+              f->eax = write(arg[0],(const void*)arg[1],arg[2]);
               break;
           }
       case SYS_SEEK:
           {
             //  printf("seek call!\n");
               set_arg(f,arg,2);
+              seek(arg[0],arg[1]);
               break;
           }
       case SYS_TELL:
           {
               //printf("tell call!\n");
               set_arg(f,arg,1);
+              f->eax = tell(arg[0]);
               break;
           }
       case SYS_CLOSE:
           {
               //printf("close call!\n");
               set_arg(f,arg,1);
+              close(arg[0]);
               break;
           }
 
@@ -238,41 +245,139 @@ int wait(pid_t pid)
 }
 bool create(const char* file, unsigned initial_size)
 {
-    return 0;
+    bool r;
+    lock_acquire(&file_lock);
+    r = filesys_create(file,initial_size);
+    lock_release(&file_lock);
+    return r;
 }
 bool remove(const char* file)
 {
-
-    return 0;
+    bool r;
+    lock_acquire(&file_lock);
+    r = filesys_remove(file);
+    lock_release(&file_lock);
+    return r;
 }
 int open(const char* file)
 {
-    return 0;
+    //file_deny_write();
+    int fd;
+    struct file* fp;
+    lock_acquire(&file_lock);
+    fp = filesys_open(file);
+    lock_release(&file_lock);
+    if(fp == NULL)
+        return -1;
+    else
+    {
+        struct thread* th= thread_current();
+        struct file_elem* fe;
+        fe = (struct file_elem*)malloc(sizeof(struct file_elem));
+        fe->fp = fp;
+        fe->fd = th->fd;
+        th->fd += 1;
+        list_push_back(&th->file_list,&fe->elem); 
+        /*
+        lock_acquire(&file_lock);
+        file_deny_write(fp);
+        lock_release(&file_lock);
+        */
+        return fe -> fd;
+    }
 }
 int filesize(int fd)
 {
-    return 0;
+    int l;
+    struct file* fp = get_file(thread_current(),fd);
+    if(fp ==NULL)
+        return -1;
+    lock_acquire(&file_lock);
+    l = file_length(fp);
+    lock_release(&file_lock);
+
+    return l;
 }
 int read(int fd, void *buffer, unsigned size)
 {
-    return 0;
+
+    if(fd == 0)
+    { 
+        unsigned i=0;
+        uint8_t* bp = (uint8_t*)buffer;
+        while(i<size)
+            bp[i++] = input_getc();
+        return size;
+    }
+    else
+    {
+        int b;
+        struct file* fp = get_file(thread_current(),fd);
+        if(fp == NULL)
+            return -1;
+        lock_acquire(&file_lock);
+        b = file_read(fp,buffer,size);
+        lock_release(&file_lock);
+        return b;
+    }
 }
 int write(int fd, const void *buffer, unsigned size)
 {
-    putbuf(buffer,size);
-    return size;
+    if(fd == 1)
+    {
+        putbuf(buffer,size);
+        return size;
+    }
+    int b;
+    struct file* fp = get_file(thread_current(), fd);
+    if(fp == NULL)
+        return -1;
+    lock_acquire(&file_lock);
+    b = file_write(fp, buffer, size);
+    lock_release(&file_lock);
+    return b;
 }
 void seek(int fd, unsigned position)
 {
-    return 0;
+    struct file* fp = get_file(thread_current(), fd);
+        if(fp == NULL)
+            return;
+    lock_acquire(&file_lock);
+    file_seek(fp, position);
+    lock_release(&file_lock);
 }
 unsigned tell(int fd)
 {
-    return 0;
+    unsigned d;
+    struct file* fp = get_file(thread_current(), fd);
+    if(fp ==NULL)
+        return -1;
+    lock_acquire(&file_lock);
+    d=file_tell(fp);
+    lock_release(&file_lock);
+    return d;
 }
 void close(int fd)
 {
-    return 0;
+    //file_allow_write();
+    struct file* fp = get_file(thread_current(), fd);
+    if(fp == NULL)
+        return;
+    lock_acquire(&file_lock);
+    file_close(fp);
+    lock_release(&file_lock);
+    //remove entry
+    struct list l= thread_current()->file_list;
+    struct list_elem *e;
+    struct file_elem* f;
+    for (e= list_begin(&l); e != list_end(&l); e = list_next(e))
+    {
+        f = list_entry(e, struct file_elem, elem);
+        if(f->fd == fd)
+            break;
+    }
+    list_remove(e);
+    free(f);
 }
 
 unsigned add_trans(const void* add)

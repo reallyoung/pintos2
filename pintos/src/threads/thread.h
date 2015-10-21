@@ -91,6 +91,12 @@ struct child_elem
     tid_t tid;
     struct thread* th;
 };
+struct file_elem
+{
+    struct list_elem elem;
+    int fd;
+    struct file* fp;
+};
 struct thread
   {
     /* Owned by thread.c. */
@@ -110,6 +116,8 @@ struct thread
     struct thread* parent;
     struct list ch_list;
     struct child_elem* my_child_elem;
+    struct list file_list;
+    int fd;
     //struct list_elem ch_elem;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -158,4 +166,5 @@ int thread_get_load_avg (void);
 void init_ch_elem(struct child_elem* ch, struct thread* th);
 struct child_elem* get_ch_elem(struct list *l, tid_t tid);
 bool thread_exist(tid_t tid);
+struct file* get_file(struct thread* t, int fd);
 #endif /* threads/thread.h */
