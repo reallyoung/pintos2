@@ -111,8 +111,27 @@ process_exit (void)
   uint32_t *pd;
 
   if(cur->my_file != NULL)
+  {
+    close(cur->my_file);
     file_allow_write(cur->my_file);
+    struct list_elem* e;
+    struct list* l = &cur->file_list;
+    struct file_elem* f;
+    if(cur->file_cnt > 0)
+    {
+        for(e = list_begin(l); e !=list_end(l); e = list_next(e))
+        {
+             if(!(e != NULL && e->prev == NULL && e->next != NULL) &&
+                !(e != NULL && e->prev != NULL && e->next != NULL))
+                    break;
 
+            f = list_entry(e,struct file_elem, elem);
+            if(f->fd>1)
+                close(f->fd);
+        }
+    }
+
+  }
   //have to implement close all files
 
 

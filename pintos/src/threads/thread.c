@@ -551,6 +551,7 @@ init_thread (struct thread *t, const char *name, int priority)
   //sema_init(t -> dont_die, 0);
   list_init(&t->file_list);
   t->fd = 2;
+  t->file_cnt =1;
   list_push_back (&all_list, &t->allelem);
 }
 

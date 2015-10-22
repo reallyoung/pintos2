@@ -119,6 +119,7 @@ struct thread
     struct list file_list;
     int fd;
     struct file* my_file;
+    int file_cnt;
     //struct list_elem ch_elem;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

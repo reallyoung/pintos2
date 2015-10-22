@@ -277,6 +277,7 @@ int open(const char* file)
         fe->fp = fp;
         fe->fd = th->fd;
         th->fd += 1;
+        th->file_cnt++;
         list_push_back(&th->file_list,&fe->elem); 
      /*   
         lock_acquire(&file_lock);
@@ -379,6 +380,7 @@ void close(int fd)
     }
     list_remove(e);
     free(f);
+    thread_current()->file_cnt--;
 }
 
 unsigned add_trans(const void* add)
